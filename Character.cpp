@@ -3,7 +3,15 @@
 #include <string>
 #include <iostream>
 
-const sf::Texture globalStartingTexture("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Characters/POGO.png");
+sf::Texture& getGlobalTexture(){
+    static sf::Texture texture;
+    if(!texture.loadFromFile("../resources/Dungeon_16x16_asset_pack/example.png")){
+        std::cerr << "Error loading texture" << std::endl;
+
+    }
+    texture.setSmooth(false);
+    return texture;
+}
 
 class Character {
 private:
@@ -40,9 +48,9 @@ public:
         BACK = 2
     };
 
-    Character() : animationSpeed(0.2f), currentFrame(0), currentAnimation(IDLE), currentDirection(FRONT), isFacingRight(true),sprite(globalStartingTexture) {
+    Character() : animationSpeed(0.2f), currentFrame(0), currentAnimation(IDLE), currentDirection(FRONT), isFacingRight(true),sprite(getGlobalTexture()) {
         // Load sprite sheet
-        if (!spriteSheet.loadFromFile("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Characters/player.png")) {
+        if (!spriteSheet.loadFromFile("../resources/player.png")) {
             std::cout << "Error loading player sprite sheet" << std::endl;
             return;
         }
@@ -78,7 +86,7 @@ public:
             deathFrames.push_back(sf::IntRect(sf::Vector2i(i * FRAME_WIDTH, FRAME_HEIGHT * 9), sf::Vector2i(FRAME_WIDTH, FRAME_HEIGHT)));
         }
 
-        sprite.setScale(sf::Vector2f(2.0f, 2.0f));
+        sprite.setScale(sf::Vector2f(4.0f, 4.0f));
         sprite.setPosition(sf::Vector2f(400, 300));
     }
 
@@ -88,11 +96,12 @@ public:
         std::vector<sf::IntRect>& currentFrames = getCurrentAnimationFrames();
         
         if (currentFrame >= currentFrames.size()) {
-            currentFrame = 0;
             if (currentAnimation == DEATH) {
+                currentFrame = 0;
                 // Stay on last death frame
                 currentFrame = currentFrames.size() - 1;
             }
+            
         }
         
         sprite.setTextureRect(currentFrames[static_cast<int>(currentFrame) % currentFrames.size()]);
@@ -102,7 +111,8 @@ public:
         if (animation != currentAnimation || direction != currentDirection) {
             currentAnimation = animation;
             currentDirection = direction;
-            currentFrame = 0;
+            if(currentAnimation != IDLE)
+                currentFrame = 0;
         }
     }
 
@@ -113,16 +123,17 @@ public:
         if (x > 0) {
             setAnimation(MOVE, RIGHT);
             isFacingRight = true;
-            sprite.setScale(sf::Vector2f(2.0f, 2.0f));
+            // sprite.setScale(sf::Vector2f(4.0f, 4.0f));
         } else if (x < 0) {
             setAnimation(MOVE, RIGHT);
             isFacingRight = false;
-            sprite.setScale(sf::Vector2f(-2.0f, 2.0f));
+            // sprite.setScale(sf::Vector2f(-4.0f, 4.0f));
         } else if (y < 0) {
             setAnimation(MOVE, BACK);
         } else if (y > 0) {
             setAnimation(MOVE, FRONT);
         }
+        sprite.setScale(isFacingRight ? sf::Vector2f(4.f,4.f) : sf::Vector2f(-4.f, 4.f));
     }
 
     void draw(sf::RenderWindow& window) {
@@ -135,6 +146,12 @@ public:
     
     sf::Vector2f getPosition() const {
         return sprite.getPosition();
+    }
+    void setLastDirection(Direction dir){
+        lastDirection = dir;
+    }
+    Direction getLastDirection() const{
+        return lastDirection;
     }
 
 private:
@@ -160,10 +177,10 @@ private:
                 }
             case DEATH:
                 return deathFrames;
-            default:
-                return idleFrontFrames;
         }
+        return idleFrontFrames; // default case
     }
+    Direction lastDirection = FRONT; // store last direction
 };
 
 // Example usage in main:
@@ -172,9 +189,11 @@ int main() {
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Character Animation");
     Character character;
     sf::Clock clock;
+
     bool isDead = false;
     
     while (window.isOpen()) {
+        
         sf::Time deltaTime = clock.restart();
 
         // Event handling
@@ -188,9 +207,7 @@ int main() {
                     character.setAnimation(Character::ATTACK, Character::FRONT);
                     std::cout << "Attacking" << std::endl;
                 }
-            }
-            // Handle death on L key press
-            if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                // Handle death on L key press
                 if (keyPressed->scancode == sf::Keyboard::Scancode::L) {
                     character.setAnimation(Character::DEATH, Character::RIGHT);
                     isDead = true;
@@ -201,30 +218,36 @@ int main() {
             // Handle movement
                 float moveX = 0.f;
                 float moveY = 0.f;
+                Character::Direction lastDirection = character.getLastDirection();
                 
-                if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-                    if (keyPressed->scancode == sf::Keyboard::Scancode::A) {
-                        character.move(-2.0f, 0.f);
-                        std::cout << "Moving left" << std::endl;
-                    }
-                    if (keyPressed->scancode == sf::Keyboard::Scancode::D) {
-                        character.move(2.0f, 0.f);
-                        std::cout << "Moving right" << std::endl;
-                    }
-                    if (keyPressed->scancode == sf::Keyboard::Scancode::W) {
-                        character.move(0.f, -2.0f);
-                        std::cout << "Moving back" << std::endl;
-                    }
-                    if (keyPressed->scancode == sf::Keyboard::Scancode::S) {
-                        character.move(0.f, 2.0f);
-                        std::cout << "Moving front" << std::endl;
-                    }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::A)) {
+                    moveX = -2.0f; moveY = 0.f;
+                    lastDirection = Character::RIGHT;
+                    std::cout << "Moving left" << std::endl;
                 }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::D)) {
+                    moveX = 2.0f; moveY = 0.f;
+                    lastDirection = Character::RIGHT;
+                    std::cout << "Moving right" << std::endl;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::W)) {
+                    moveX = 0.f; moveY = -2.0f;
+                    lastDirection = Character::BACK;
+                    std::cout << "Moving back" << std::endl;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::S)) {
+                    moveX = 0.f; moveY = 2.0f;
+                    lastDirection = Character::FRONT;
+                    std::cout << "Moving front" << std::endl;
+                }
+                
                 
                 if (moveX != 0.f || moveY != 0.f) {
                     character.move(moveX, moveY);
+                    character.setAnimation(Character::MOVE, lastDirection);
+                    character.setLastDirection(lastDirection);
                 } else {
-                    character.setAnimation(Character::IDLE, Character::FRONT);
+                    character.setAnimation(Character::IDLE, character.getLastDirection());
                 }
             }
         }
