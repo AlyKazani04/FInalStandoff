@@ -5,7 +5,7 @@
 
 sf::Texture& getGlobalTexture(){
     static sf::Texture texture;
-    if(!texture.loadFromFile("../resources/Dungeon_16x16_asset_pack/example.png")){
+    if(!texture.loadFromFile("../resources/player.png")){
         std::cerr << "Error loading texture" << std::endl;
 
     }
@@ -123,11 +123,9 @@ public:
         if (x > 0) {
             setAnimation(MOVE, RIGHT);
             isFacingRight = true;
-            // sprite.setScale(sf::Vector2f(4.0f, 4.0f));
         } else if (x < 0) {
             setAnimation(MOVE, RIGHT);
             isFacingRight = false;
-            // sprite.setScale(sf::Vector2f(-4.0f, 4.0f));
         } else if (y < 0) {
             setAnimation(MOVE, BACK);
         } else if (y > 0) {
@@ -201,12 +199,7 @@ int main() {
             if (event->is<sf::Event::Closed>())
                 window.close();
             
-            // Handle attack on Space key press
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-                if (keyPressed->scancode == sf::Keyboard::Scancode::Space) {
-                    character.setAnimation(Character::ATTACK, Character::FRONT);
-                    std::cout << "Attacking" << std::endl;
-                }
                 // Handle death on L key press
                 if (keyPressed->scancode == sf::Keyboard::Scancode::L) {
                     character.setAnimation(Character::DEATH, Character::RIGHT);
@@ -240,14 +233,42 @@ int main() {
                     lastDirection = Character::FRONT;
                     std::cout << "Moving front" << std::endl;
                 }
-                
+
+                bool isAttacking = false;
+                // Handle attack on Space key press
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Space) && lastDirection == Character::RIGHT) {
+                    character.setAnimation(Character::ATTACK, Character::RIGHT);
+                    lastDirection = Character::RIGHT;
+                    std::cout << "Attacking Right" << std::endl;
+                    isAttacking = true;
+                } else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Space) && lastDirection == Character::FRONT){
+                    lastDirection = Character::FRONT;
+                    std::cout << "Attacking Front" << std::endl;
+                    isAttacking = true;
+                    character.setAnimation(Character::ATTACK, Character::FRONT);
+                } else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Space) && lastDirection == Character::BACK){
+                    lastDirection = Character::BACK;
+                    std::cout << "Attacking Back" << std::endl;
+                    character.setAnimation(Character::ATTACK, Character::BACK);
+                    isAttacking = true;
+                }
                 
                 if (moveX != 0.f || moveY != 0.f) {
-                    character.move(moveX, moveY);
-                    character.setAnimation(Character::MOVE, lastDirection);
-                    character.setLastDirection(lastDirection);
+                    if(isAttacking){
+                        character.setAnimation(Character::ATTACK, lastDirection);
+                        character.setLastDirection(lastDirection);
+                    } else{
+                        character.move(moveX, moveY);
+                        character.setAnimation(Character::MOVE, lastDirection);
+                        character.setLastDirection(lastDirection);
+                    }
                 } else {
-                    character.setAnimation(Character::IDLE, character.getLastDirection());
+                    if(isAttacking){
+                        character.setAnimation(Character::ATTACK, lastDirection);
+                        character.setLastDirection(lastDirection);
+                    } else{
+                        character.setAnimation(Character::IDLE, character.getLastDirection());
+                    }
                 }
             }
         }
