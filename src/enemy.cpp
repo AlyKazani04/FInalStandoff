@@ -69,23 +69,23 @@ public:
         healthBarFill.setFillColor(sf::Color::Green);
 
         // Load all textures
-        if (!idleTexture.loadFromFile("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Enimies/enemies-skeleton1_idle.png")) {
+        if (!idleTexture.loadFromFile("../resources/EnemyAnim/enemies-skeleton1_idle.png")) {
             std::cout << "Error loading enemy idle texture" << std::endl;
             return;
         }
-        if (!attackTexture.loadFromFile("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Enimies/enemies-skeleton1_attack.png")) {
+        if (!attackTexture.loadFromFile("../resources/EnemyAnim/enemies-skeleton1_attack.png")) {
             std::cout << "Error loading enemy attack texture" << std::endl;
             return;
         }
-        if (!moveTexture.loadFromFile("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Enimies/enemies-skeleton1_movement.png")) {
+        if (!moveTexture.loadFromFile("../resources/EnemyAnim/enemies-skeleton1_movement.png")) {
             std::cout << "Error loading enemy movement texture" << std::endl;
             return;
         }
-        if (!deathTexture.loadFromFile("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Enimies/enemies-skeleton1_death.png")) {
+        if (!deathTexture.loadFromFile("../resources/EnemyAnim/enemies-skeleton1_death.png")) {
             std::cout << "Error loading enemy death texture" << std::endl;
             return;
         }
-        if (!damageTexture.loadFromFile("/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/Enimies/enemies-skeleton1_take_damage.png")) {
+        if (!damageTexture.loadFromFile("../resources/EnemyAnim/enemies-skeleton1_take_damage.png")) {
             std::cout << "Error loading enemy damage texture" << std::endl;
             return;
         }
@@ -155,7 +155,7 @@ public:
     }
 
     void setAnimation(AnimationState animation) {
-        if (isDead && animation != DEATH) return;
+        if (isDead) return;
         
         if (animation != currentAnimation) {
             currentAnimation = animation;
@@ -196,8 +196,8 @@ public:
         sf::FloatRect spriteBounds = sprite.getGlobalBounds();
         
         // Position both bars above the sprite
-        float xPos = 20.0f;  //spriteBounds.left
-        float yPos = 20.0f;  //spriteBounds.top - 10.f // 10 pixels above sprite
+        float xPos = spriteBounds.position.x + sprite.getGlobalBounds().size.x/4 ;
+        float yPos = spriteBounds.position.y + 10.f; // 10 pixels above sprite
         
         healthBarBackground.setPosition(sf::Vector2f(xPos, yPos));
         healthBarFill.setPosition(sf::Vector2f(xPos, yPos));
@@ -323,4 +323,3 @@ int main() {
     
     return 0;
 }
-
