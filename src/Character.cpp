@@ -67,13 +67,33 @@ class Character {
         Character() : currentFrame(0), currentAnimation(IDLE), currentDirection(FRONT), isFacingRight(true), sprite(getGlobalTexture()) {}
 
         void Load(int level){
+
             // initialize character variables
             LevelNumber = level;
             Health = MAX_HEALTH;
             Coins = 0;
             KeyCollected = false;
             movetonextlevel = false;
+            isDead = false;
+            isAttacking = false;
+            currentFrame = 0;
+            currentAnimation = IDLE;
+            currentDirection = FRONT;
+            isFacingRight = true;
+            lastDirection = FRONT;
+            
 
+            // clear animation frames
+            idleFrontFrames.clear();
+            idleRightFrames.clear();
+            idleBackFrames.clear();
+            moveFrontFrames.clear();
+            moveRightFrames.clear();
+            moveBackFrames.clear();
+            attackFrontFrames.clear();
+            attackRightFrames.clear();
+            attackBackFrames.clear();
+            deathFrames.clear();
 
             // Load sprite sheet
             if (!spriteSheet.loadFromFile("../resources/player.png")) {
@@ -129,9 +149,10 @@ class Character {
             hitbox.setSize({hbWidth, hbHeight});
             hitbox.setOrigin({hbWidth / 2.f, hbHeight / 2.f});
             hitbox.setPosition({spritePos.x, spritePos.y + hitboxyoffset});
-
+            clock.restart();
         }
-        void update(float deltaTime, const std::vector<sf::FloatRect>& mapRects, Props& prop) {
+
+        void update(float deltaTime, const std::vector<sf::FloatRect>& mapRects, Prop& prop) {
 
             if (isDead){
                 setAnimation(DEATH, lastDirection);
@@ -182,8 +203,10 @@ class Character {
                     movement = {0.f, speed * deltaTime};
                     lastDirection = FRONT;
                 }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Space)) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Space) && !isAttacking) {
                     isAttacking = true;
+                    setAnimation(ATTACK, lastDirection);
+                    currentFrame = 0;
                 }
 
                 sf::FloatRect nexthitbox = hitbox.getGlobalBounds();
@@ -202,9 +225,8 @@ class Character {
                         if(nexthitbox.findIntersection(rect)){
                             int tileX = rect.position.x / TILE_SIZE / SCALE;
                             int tileY = rect.position.y / TILE_SIZE / SCALE;
-                            int propID = prop.getPropID(tileX, tileY);
+                            int propID = prop.getTileID(tileX, tileY);
 
-                            std::cout<<"Collision"<<std::endl;
                             if(propID == 24){ // check if its a coin
                                 prop.collectTile(tileX, tileY);
                                 ++Coins;
@@ -221,13 +243,12 @@ class Character {
                     }
                 }
                 if (movement != sf::Vector2f{0.f, 0.f}) {
-                    if(isAttacking == true){
-                        setAnimation(ATTACK, lastDirection);
-                        setLastDirection(lastDirection);
-                    } else if(!blocked){
+                    if(!isAttacking && !blocked){
                         move(movement.x, movement.y);
                         setAnimation(MOVE, lastDirection);
                         setLastDirection(lastDirection);
+                    } else if(!isAttacking){
+                        setAnimation(IDLE, lastDirection);
                     }
                 } else {
                     if(isAttacking == true){
@@ -248,15 +269,7 @@ class Character {
             }
         }
 
-        void setAnimation(AnimationState animation, Direction direction) {
-            if (animation != currentAnimation || direction != currentDirection) {
-                currentAnimation = animation;
-                currentDirection = direction;
-                
-                currentFrame = 0;
-            }
-        }
-
+        
         void move(float x, float y) {
             sprite.move(sf::Vector2f(x, y));
             hitbox.move(sf::Vector2f(x,y));
@@ -275,16 +288,21 @@ class Character {
             }
             sprite.setScale(isFacingRight ? sf::Vector2f(character_SCALE,character_SCALE) : sf::Vector2f(-character_SCALE, character_SCALE));
         }
-
+        
         void draw(sf::RenderWindow& window) {
             window.draw(sprite);
-            window.draw(hitbox);
+            window.draw(hitbox); // for debugging, delete on release
         }
-
+        
+        // getters
+        float getCurrentHealth(){
+            return Health;
+        }
+        
         sf::FloatRect getBounds() const {
             return sprite.getGlobalBounds();
         }
-
+        
         sf::FloatRect getHitboxBounds() const{
             return hitbox.getGlobalBounds();
         }
@@ -292,21 +310,36 @@ class Character {
         sf::Vector2f getPosition() const {
             return sprite.getPosition();
         }
-        void setLastDirection(Direction dir){
-            lastDirection = dir;
-        }
+        
         Direction getLastDirection() const{
             return lastDirection;
         }
-
-        bool isPlayerDead(){
+        
+        // return flags
+        bool isPlayerDead(){ 
             return isDead;
         }
+        
         bool movetoNextLevel(){
             return movetonextlevel;
         }
-
+        
+        
+        
     private:
+        // setters
+        void setAnimation(AnimationState animation, Direction direction) {
+            if (animation != currentAnimation || direction != currentDirection) {
+                currentAnimation = animation;
+                currentDirection = direction;
+                
+                currentFrame = 0;
+            }
+        }
+
+        void setLastDirection(Direction dir){
+            lastDirection = dir;
+        }
         std::vector<sf::IntRect>& getCurrentAnimationFrames() {
             switch (currentAnimation) {
                 case IDLE:

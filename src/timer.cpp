@@ -58,5 +58,11 @@ class Timer{
         bool isTimeUp(){
             return clock.getElapsedTime().asSeconds() >= totalTime;
         }
+        void pause(){
+            clock.stop();
+        }
+        void unpause(){
+            clock.start();
+        }
 
 };

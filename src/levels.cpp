@@ -3,26 +3,38 @@
 #include <iostream>
 #include "constants.cpp"
 
-class Props{
-    private:
-        sf::Texture propTexture; // prop texture
-        int (*currentProps)[LEVEL_WIDTH]; // Pointer to the prop layout
-        sf::FloatRect propsprites[LEVEL_WIDTH][LEVEL_HEIGHT] = {sf::FloatRect({0,0},{TILE_SIZE, TILE_SIZE})}; // for each props, size and position, to calc collision 
+class Layout{
+    protected:
+        sf::Texture texture;
+        int (*layout)[LEVEL_WIDTH];// pointer to tile ids
         int LevelNumber;
-        sf::RectangleShape door_hitbox;
-
     public:
-        Props() : LevelNumber(0) {
-            currentProps = PROPS[0];
+        Layout() : LevelNumber(0) {}
+
+        // getters
+        int getTileID(int x, int y) {
+            return layout[y][x];
+        }
+
+        virtual void Load(const int level) = 0;
+        virtual void Render(sf::RenderWindow& window) = 0;
+        ~Layout(){}
+};
+
+
+class Prop : public Layout{
+    private:
+        sf::FloatRect propsprites[LEVEL_WIDTH][LEVEL_HEIGHT] = {sf::FloatRect({0,0},{TILE_SIZE, TILE_SIZE})}; // for each props, size and position, to calc collision 
+        sf::RectangleShape door_hitbox;
+    public:
+        Prop() : Layout() {
+            layout = PROPS[0];
         }
         bool isCollidable(int tile) const{
             return tile == 24 || tile == 31 || tile == 26; // return a coin, key or a door
         }
-        int getPropID(int x, int y) const{ // returns the prop id at the given position
-            return currentProps[y][x];
-        }
         void collectTile(int x, int y){ // sets tile to an empty tile
-            currentProps[y][x] = 0;
+            layout[y][x] = 0;
         }
         bool isDoor(sf::FloatRect rect) const{
             if(door_hitbox.getGlobalBounds().findIntersection(rect)){
@@ -30,6 +42,7 @@ class Props{
             }
             return false;
         }
+
         std::vector<sf::FloatRect> GetPropCollisionRects() const {
             std::vector<sf::FloatRect> collidables;
             for (int y = 0; y < LEVEL_HEIGHT; ++y) {
@@ -43,26 +56,26 @@ class Props{
             return collidables;
         }       
 
-        void LoadProps(const int level){  // takes the level number and loads the corresponding props layout
+        void Load(const int level) override{  // takes the level number and loads the corresponding props layout
             LevelNumber = level;
 
-            if (!propTexture.loadFromFile("../resources/Dungeon_16x16_asset_pack/tileset.png")) {
+            if (!texture.loadFromFile("../resources/Dungeon_16x16_asset_pack/tileset.png")) {
                 std::cout << "Props didn't load successfully!\n";
             } 
             else { 
                 std::cout << "Props loaded successfully!\n";
             }
-            propTexture.setSmooth(false);
+            texture.setSmooth(false);
 
-            currentProps = PROPS[LevelNumber];
+            layout = PROPS[LevelNumber];
         }
         
-        void Render(sf::RenderWindow& window){
-            sf::Sprite tempSprite(propTexture);
+        void Render(sf::RenderWindow& window) override{
+            sf::Sprite tempSprite(texture);
 
             for (int y = 0; y < LEVEL_HEIGHT; ++y) {
                 for (int x = 0; x < LEVEL_WIDTH; ++x) {
-                    int proptile = abs(currentProps[y][x]);
+                    int proptile = abs(layout[y][x]);
 
                     if(PROPS[LevelNumber][y][x] != 0){
                         if(abs(PROPS[LevelNumber][y][x]) == 33){ // torch lateral wall
@@ -109,10 +122,6 @@ class Props{
                         }
                          else{
                             if(PROPS[LevelNumber][y][x] == 26){ // door
-
-                                door_hitbox.setFillColor(sf::Color::Transparent);
-                                door_hitbox.setOutlineColor(sf::Color::Red);
-                                door_hitbox.setOutlineThickness(1.f);
 
                                 // calculate prop sprite used from tile set
                                 int proptileX = (proptile % maptilesetColumns) * TILE_SIZE;
@@ -167,27 +176,19 @@ class Props{
                     } else{ continue; }
 
                     window.draw(tempSprite);
-                    if(getPropID(x, y) == 26){
-                        window.draw(door_hitbox);
-                    } 
                 }
             }            
         }
 
-        ~Props(){}
+        ~Prop(){}
 };
 
-class Map {
+class Map : public Layout{
     private:
-        sf::Texture mapTexture; // map tile texture
-        int (*currentMap)[LEVEL_WIDTH]; // Pointer to the current map array
-        int LevelNumber; // Current level number
-
         sf::FloatRect mapsprites[LEVEL_WIDTH][LEVEL_HEIGHT];  // Array of map sprite bounds for wall collisions
-
     public:
-        Map() : LevelNumber(0) {
-            currentMap = MAPS[0];
+        Map() : Layout() {
+            layout = MAPS[0];
         }
 
         std::vector<sf::FloatRect> GetMapCollisionRects() const {
@@ -202,25 +203,25 @@ class Map {
             return collidables;
         }
 
-        void LoadMap(const int level){  //    takes the level number and loads the corresponding map
+        void Load(const int level) override{  //    takes the level number and loads the corresponding map
             LevelNumber = level;
-            if (!mapTexture.loadFromFile("../resources/Dungeon_16x16_asset_pack/tileset.png")) {
+            if (!texture.loadFromFile("../resources/Dungeon_16x16_asset_pack/tileset.png")) {
                 std::cout << "Map didn't load successfully!\n";
             } 
             else { 
                 std::cout << "Map loaded successfully!\n";
             }
-            mapTexture.setSmooth(false);
+            texture.setSmooth(false);
 
-            currentMap = MAPS[LevelNumber];
+            layout = MAPS[LevelNumber];
         }
 
-        void Render(sf::RenderWindow& window){
-            sf::Sprite tempSprite(mapTexture);
+        void Render(sf::RenderWindow& window) override{
+            sf::Sprite tempSprite(texture);
 
             for (int y = 0; y < LEVEL_HEIGHT; ++y) {
                 for (int x = 0; x < LEVEL_WIDTH; ++x) {
-                    int maptile = currentMap[y][x];
+                    int maptile = layout[y][x];
 
                     int maptileX = (maptile % maptilesetColumns) * TILE_SIZE;
                     int maptileY = (maptile / maptilesetColumns) * TILE_SIZE;
@@ -252,19 +253,15 @@ class Map {
         ~Map(){}
 };
 
-class Floor {
+class Floor : public Layout{
     private:
-        sf::Texture floorTexture; // floor tile texture
         sf::Texture lavaTexture; // lava tile texture
-        const int (*currentFloor)[LEVEL_WIDTH]; // Pointer to the current floor array
         const int (*LavaPointer)[LEVEL_WIDTH]; // Pointer to the Lava array
-        int LevelNumber; // current level number
 
         // Animated Lava Functionality
         sf::Clock lavaAnimClock;
         sf::Time lavaFrameDuration = sf::milliseconds(200); // 5 fps
         int currentlavaframe = 0;
-
 
         void LavaAnimUpdate(){
             if (lavaAnimClock.getElapsedTime() > lavaFrameDuration) {
@@ -273,16 +270,16 @@ class Floor {
             }
         }
     public:
-        Floor() : LevelNumber(0) {
-            currentFloor = FLOORS[0];
+        Floor() : Layout() {
+            layout = FLOORS[0];
             lavaAnimClock.start();
         }
 
-        void LoadFloor(const int level) { //    takes the level number and loads the corresponding level
+        void Load(const int level) override{ //    takes the level number and loads the corresponding level
             if (level == 0 || level == 1) {
                 LevelNumber = level;
 
-                if (!floorTexture.loadFromFile("../resources/Mini_Dungeon_Tileset/FREE/1_MiniDungeon_Tileset_Background1.png")) {
+                if (!texture.loadFromFile("../resources/Mini_Dungeon_Tileset/FREE/1_MiniDungeon_Tileset_Background1.png")) {
                     std::cout << "Floor didn't load successfully!\n";
                 } 
                 else { 
@@ -291,7 +288,7 @@ class Floor {
             }
             if(level == 2) {
                 LevelNumber = level;
-                if (!floorTexture.loadFromFile("../resources/Mini_Dungeon_Tileset/FREE/1_MiniDungeon_Tileset_Background1.png")) {
+                if (!texture.loadFromFile("../resources/Mini_Dungeon_Tileset/FREE/1_MiniDungeon_Tileset_Background1.png")) {
                     std::cout << "Floor didn't load successfully!\n";
                 } 
                 else { 
@@ -306,22 +303,22 @@ class Floor {
                 LavaPointer = LAVA;
                 lavaTexture.setSmooth(false);
             }
-            floorTexture.setSmooth(false);
+            texture.setSmooth(false);
             
             
-            currentFloor = FLOORS[LevelNumber];
+            layout = FLOORS[LevelNumber];
         }
 
-        void Render(sf::RenderWindow& window) {
+        void Render(sf::RenderWindow& window) override{
 
-            sf::Sprite floorSprite(floorTexture);
+            sf::Sprite floorSprite(texture);
             sf::Sprite lavaSprite(lavaTexture);
 
             if(LevelNumber == 0 || LevelNumber == 1) {
                 for (int y = 0; y < LEVEL_HEIGHT; ++y) {
                     for (int x = 0; x < LEVEL_WIDTH; ++x) {
 
-                        int floortile = currentFloor[y][x];
+                        int floortile = layout[y][x];
 
                         // Calculate row and column in the tileset
                         int floortileX = (floortile % floortilesetColumns) * TILE_SIZE;
@@ -342,7 +339,7 @@ class Floor {
                 for (int y = 0; y < LEVEL_HEIGHT; ++y) {
                     for (int x = 0; x < LEVEL_WIDTH; ++x) {
                         
-                        int floortile = currentFloor[y][x]; // Floor tileID
+                        int floortile = layout[y][x]; // Floor tileID
                         int lavatile = LavaPointer[y][x]; // Lava tileID
 
     
