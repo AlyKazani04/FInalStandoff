@@ -1,53 +1,58 @@
-#ifndef SCREEN_MANAGER_HPP
-#define SCREEN_MANAGER_HPP
+#pragma once
 
 #include <SFML/Graphics.hpp>
 #include <string>
 
 class ScreenManager {
 public:
-    static bool loadStartScreen(sf::RenderWindow& window, 
-                              sf::Font& font,
-                              sf::Texture& titleBoxTexture,
-                              sf::Texture& buttonTexture,
-                              sf::Text& title,
-                              sf::Sprite& titleBox,
-                              sf::RectangleShape& playButton,
-                              sf::RectangleShape& exitButton,
-                              sf::Text& playText,
-                              sf::Text& exitText);
+    // Constructor and destructor
+    ScreenManager();
+    ~ScreenManager();
 
-    static bool loadPauseScreen(sf::RenderWindow& window,
-                              sf::Font& font,
-                              sf::Texture& titleBoxTexture,
-                              sf::Texture& buttonTexture,
-                              sf::Text& title,
-                              sf::Sprite& titleBox,
-                              sf::RectangleShape& resumeButton,
-                              sf::RectangleShape& exitButton,
-                              sf::Text& resumeText,
-                              sf::Text& exitText);
+    // Initialize the screen manager with the window
+    bool initialize(sf::RenderWindow& window);
+    
+    // Load screens
+    bool loadStartScreen(sf::RenderWindow& window);
+    bool loadPauseScreen(sf::RenderWindow& window);
 
-    static void renderStartScreen(sf::RenderWindow& window,
-                                const sf::Text& title,
-                                const sf::Sprite& titleBox,
-                                const sf::RectangleShape& playButton,
-                                const sf::Text& playText,
-                                const sf::RectangleShape& exitButton,
-                                const sf::Text& exitText);
-
-    static void renderPauseScreen(sf::RenderWindow& window,
-                                const sf::Text& title,
-                                const sf::Sprite& titleBox,
-                                const sf::RectangleShape& resumeButton,
-                                const sf::Text& resumeText,
-                                const sf::RectangleShape& exitButton,
-                                const sf::Text& exitText);
+    // Render screens
+    void renderStartScreen(sf::RenderWindow& window);
+    void renderPauseScreen(sf::RenderWindow& window);
+    
+    // Handle input
+    bool handleStartScreenInput(sf::RenderWindow& window, bool& startGame, bool& exitGame);
+    bool handlePauseScreenInput(sf::RenderWindow& window, bool& resumeGame, bool& exitGame);
 
 private:
+    // Resources
+    sf::Font m_font;
+    sf::Texture m_titleBoxTexture;
+    sf::Texture m_buttonTexture;
+    
+    // Start screen elements
+    sf::Text m_startTitle;
+    sf::Sprite m_startTitleBox;
+    sf::RectangleShape m_startPlayButton;
+    sf::RectangleShape m_startExitButton;
+    sf::Text m_startPlayText;
+    sf::Text m_startExitText;
+    
+    // Pause screen elements
+    sf::Text m_pauseTitle;
+    sf::Sprite m_pauseTitleBox;
+    sf::RectangleShape m_pauseResumeButton;
+    sf::RectangleShape m_pauseExitButton;
+    sf::Text m_pauseResumeText;
+    sf::Text m_pauseExitText;
+    
+    // Resource paths
     static const std::string FONT_PATH;
     static const std::string TITLE_BOX_PATH;
     static const std::string BUTTON_PATH;
-};
 
-#endif // SCREEN_MANAGER_HPP 
+    // Helper methods
+    bool loadResources();
+    bool setupStartScreen(sf::RenderWindow& window);
+    bool setupPauseScreen(sf::RenderWindow& window);
+}; 
