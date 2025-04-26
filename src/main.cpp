@@ -20,15 +20,13 @@ int main(){
     BackGroundMusic bgm;
     Timer timer;
     sf::Clock clock;
-
-    int LevelNumber = 0;
-    bool isFullScreen = true;
+d
 
     createWindow(isFullScreen); // Create window in fullscreen mode
     floor.LoadFloor(LevelNumber);       // Game Starts at Level 0, then 1, then finally, 2
     map.LoadMap(LevelNumber);            // Walls
     prop.LoadProps(LevelNumber);          // Props
-    bgm.LoadMusic(LevelNumber);            // Music
+    bgm.LoadMusic(LevelNumber);            // Musicdsadswwda
     timer.LoadTimer(window, LevelNumber);   // Timer
     player.Load(LevelNumber);                // Player
     
