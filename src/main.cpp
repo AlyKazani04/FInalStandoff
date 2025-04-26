@@ -6,19 +6,22 @@
 #include "fullscreen.cpp"
 #include "timer.cpp"
 #include "Character.cpp"
+#include "ScreenManager.hpp"
+#include "ScreenManager.cpp"
 
 enum GameScreen{MENU, LEVEL1, LEVEL2, LEVEL3, DEATHMATCH, PAUSE, GAMEOVER, CREDITS};
 
 int main(){
 
     // INITIALIZE GAME
-    GameScreen currentScreen = LEVEL1; // Show Menu first
+    GameScreen currentScreen = MENU; // Show Menu first
     GameScreen prevScreen = currentScreen;
     Floor floor;
     Map map;
     Prop prop;
     Character player;
     Character player2; // for deathmatch
+    MenuMusic menubgm;
     BackGroundMusic bgm;
     Timer timer;
     sf::Clock clock;
@@ -28,6 +31,8 @@ int main(){
     bool isPause = false;
 
     createWindow(isFullScreen); // Create window in fullscreen mode
+    ScreenManager screenHandle;
+    screenHandle.initialize(window);
     floor.Load(LevelNumber);       // Game Starts at Level 0, then 1, then finally, 2
     map.Load(LevelNumber);            // Walls
     prop.Load(LevelNumber);          // Props
@@ -37,7 +42,8 @@ int main(){
     
     window.setFramerateLimit(60);  // Max FrameRate set to 60 
     int framecounter = 0;
-    bgm.play();
+    menubgm.LoadMusic();
+    menubgm.play();
 
 
     while (window.isOpen()){
@@ -58,26 +64,37 @@ int main(){
                 createWindow(isFullScreen);
             }
             if(event->is<sf::Event::KeyPressed>() && event->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::P){
-                if(isPause == false){
-                    isPause = true;
-                    timer.pause();
-                    prevScreen = currentScreen;
-                    currentScreen = PAUSE;
-                } else{
-                    isPause = false;
-                    timer.unpause();
-                    currentScreen = prevScreen;
+                if(currentScreen == LEVEL1 || currentScreen == LEVEL2 || currentScreen == LEVEL3){
+                    if(!isPause){
+                        isPause = true;
+                        timer.pause();
+                        prevScreen = currentScreen;
+                        currentScreen = PAUSE;
+                    }else if(currentScreen == PAUSE){
+                        isPause = false;
+                        timer.unpause();
+                        currentScreen = prevScreen;
+                    }
                 }
             }
         }
         
         { // UPDATE
             switch(currentScreen){
-                case MENU:
-                    // if(choice of selecting play ){
-                    //     currentScreen = LEVEL1;
-                    // }
-                    // break;
+                case MENU: // process menu events here
+                {
+                    bool startgame = false, exitgame = false;
+                    screenHandle.handleStartScreenInput(window, startgame, exitgame);
+                    if(startgame){
+                        menubgm.stop();
+                        currentScreen = LEVEL1;
+                        bgm.LoadMusic(LevelNumber);
+                        bgm.play();
+                    } else if(exitgame){
+                        window.close();
+                    }  
+                }
+                    break;
                 case LEVEL1:
                     if(player.movetoNextLevel() == false){
 
@@ -91,7 +108,7 @@ int main(){
                         if(timer.isTimeUp()){
                             timer.reset();
                         }
-                        player.update(deltaTime, map.GetMapCollisionRects(), prop);
+                        player.update(deltaTime, map.GetMapCollisionRects(), prop, window);
                         if(player.isPlayerDead() || timer.isTimeUp()){
                             currentScreen = GAMEOVER;
                         }
@@ -117,7 +134,7 @@ int main(){
                         if(timer.isTimeUp()){
                             timer.reset();
                         }
-                        player.update(deltaTime, map.GetMapCollisionRects(), prop);
+                        player.update(deltaTime, map.GetMapCollisionRects(), prop, window);
 
                         if(player.isPlayerDead() || timer.isTimeUp()){
                             currentScreen = GAMEOVER;
@@ -147,9 +164,10 @@ int main(){
                         if(timer.isTimeUp()){
                             timer.reset();
                         }
-                        player.update(deltaTime, map.GetMapCollisionRects(), prop);
+                        player.update(deltaTime, map.GetMapCollisionRects(), prop, window);
 
                         if(player.isPlayerDead() || timer.isTimeUp()){
+                            bgm.stop();
                             currentScreen = GAMEOVER;
                         }
                     } else{
@@ -166,26 +184,39 @@ int main(){
                     }
                     break;
                 case PAUSE:
-                    // do nothing
+                {
+                    bool resumegame = false, exitgame = false;
+                    screenHandle.handlePauseScreenInput(window, resumegame,exitgame);
+                    if(resumegame){
+                        isPause = false;
+                        timer.unpause();
+                        currentScreen = prevScreen;
+                    } else if(exitgame){
+                        window.close();
+                    }
+                }
                     break;
                 case DEATHMATCH:
                     break;
                 case GAMEOVER:
                     break;
                 case CREDITS:
-                    break; 
+                    break;
+                default:
+                    bgm.stop();
+                    window.close();
+                    return 0;
             }
             
         }
         
         {// DRAW
-            window.clear();     // clearing the window each frame
+            window.clear(sf::Color::Black);     // clearing the window each frame
             switch(currentScreen){
                 case MENU: // draw menu stuff here
-
+                    screenHandle.renderStartScreen(window);
                     break;
                 case LEVEL1:
-
                     floor.Render(window); // rendering the level
                     map.Render(window); // rendering the map
                     prop.Render(window); // rendering the props
@@ -193,7 +224,6 @@ int main(){
                     player.draw(window); // rendering the player
                     break;
                 case LEVEL2:
-
                     floor.Render(window); // rendering the level
                     map.Render(window); // rendering the map
                     prop.Render(window); // rendering the props
@@ -215,6 +245,7 @@ int main(){
                         timer.render(window); // render the timer
                         player.draw(window); // rendering the player
                     }
+                    screenHandle.renderPauseScreen(window);
                     break;
                 case DEATHMATCH:
                     break;
@@ -222,9 +253,6 @@ int main(){
                     break;
                 case CREDITS:
                     break; 
-                default:
-                    window.close();
-                    return 0;
             }
             window.display();   // displaying the window (important)
         }

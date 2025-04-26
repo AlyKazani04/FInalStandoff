@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -31,6 +32,18 @@ class Character {
         std::vector<sf::IntRect> deathFrames;
         sf::Clock clock;
         sf::RectangleShape hitbox;
+        sf::RectangleShape attack_hitbox;
+
+        //sound variables
+        std::vector<sf::SoundBuffer> attackBuffers;
+        std::vector<sf::Sound> attackSound;
+        sf::SoundBuffer deathBuffer;
+        std::vector<sf::Sound> deathSound;
+        std::vector<sf::SoundBuffer> walkBuffers;
+        std::vector<sf::Sound> walkSound;
+        sf::Clock walkSoundClock;
+        sf::Time walkSoundCooldown = sf::milliseconds(300);
+        int lastWalkSoundIndex = -1;
 
         // animation variables
         sf::Time frameDuration = sf::seconds(0.1f); // in seconds, 0.1secs; 10fps
@@ -49,6 +62,8 @@ class Character {
         const float attackDamage = 20;
         bool KeyCollected = false;
         bool movetonextlevel = false;
+        sf::Clock deathTimer;
+        bool deathAnimationFinished = false;
         
     public:
         enum AnimationState {
@@ -65,9 +80,9 @@ class Character {
         };
         
         Character() : currentFrame(0), currentAnimation(IDLE), currentDirection(FRONT), isFacingRight(true), sprite(getGlobalTexture()) {}
-
+        
         void Load(int level){
-
+            
             // initialize character variables
             LevelNumber = level;
             Health = MAX_HEALTH;
@@ -82,7 +97,42 @@ class Character {
             isFacingRight = true;
             lastDirection = FRONT;
             
+            // intialize sound buffers
+            attackBuffers.resize(3);
+            attackSound.clear();
+            walkBuffers.resize(3);
+            walkSound.clear();
+            deathSound.clear();
+            
 
+            for (int i = 0; i < 3; ++i) {
+                std::string path = "../resources/Minifantasy_Dungeon_SFX/07_human_atk_sword_" + std::to_string(i + 1) + ".wav";
+                if (attackBuffers[i].loadFromFile(path)) {
+                    attackSound.emplace_back(attackBuffers[i]);
+                }
+            }
+            for (int i = 0; i < 3; ++i) {
+                std::string path = "../resources/Minifantasy_Dungeon_SFX/16_human_walk_stone_" + std::to_string(i + 1) + ".wav";
+                if (walkBuffers[i].loadFromFile(path)) {
+                    walkSound.emplace_back(walkBuffers[i]);
+                }
+            }
+            
+            if(deathBuffer.loadFromFile("../resources/Minifantasy_Dungeon_SFX/14_human_death_spin.wav")){
+                deathSound.emplace_back(deathBuffer);
+                deathSound[0].setVolume(20);
+                deathSound[0].setPlayingOffset(sf::seconds(0.5f));
+            };
+            
+            for(int i = 0; i < 3; i++){
+                attackSound[i].setBuffer(attackBuffers[i]);
+                attackSound[i].setVolume(50);
+            }
+            for (int i = 0; i < 3; i++) {
+                walkSound[i].setBuffer(walkBuffers[i]);
+                walkSound[i].setVolume(20);
+            }
+            
             // clear animation frames
             idleFrontFrames.clear();
             idleRightFrames.clear();
@@ -129,9 +179,9 @@ class Character {
             for (int i = 0; i < 3; i++) {
                 deathFrames.push_back(sf::IntRect(sf::Vector2i(i * FRAME_WIDTH, FRAME_HEIGHT * 9), sf::Vector2i(FRAME_WIDTH, FRAME_HEIGHT)));
             }
-            hitbox.setFillColor(sf::Color::Transparent);
-            hitbox.setOutlineColor(sf::Color::Red);
-            hitbox.setOutlineThickness(1.f);
+            attack_hitbox.setFillColor(sf::Color::Transparent);
+            attack_hitbox.setOutlineColor(sf::Color::Red);
+            attack_hitbox.setOutlineThickness(1.f);
             
 
             sprite.setOrigin(sf::Vector2f(FRAME_WIDTH/2, FRAME_HEIGHT/2));
@@ -140,19 +190,24 @@ class Character {
 
             sf::Vector2f spritePos = sprite.getPosition();
             
+            float atthbWidth = FRAME_WIDTH * 0.4f;
+            float atthbHeight = FRAME_HEIGHT * 0.2f;
+            
+            float atthboffsety = 30;
+            attack_hitbox.setSize({atthbWidth, atthbHeight});
+            attack_hitbox.setPosition({spritePos.x, spritePos.y + atthboffsety});
             
             float hbWidth = FRAME_WIDTH * character_SCALE * 0.3f;
-            float hbHeight = FRAME_HEIGHT * character_SCALE * 0.4f;
-            
+            float hbHeight = FRAME_HEIGHT * character_SCALE * 0.1f;
+            float hitboxyoffset = 62.f;
             // Position it centered at sprite position
-            float hitboxyoffset = 25.f;
             hitbox.setSize({hbWidth, hbHeight});
             hitbox.setOrigin({hbWidth / 2.f, hbHeight / 2.f});
             hitbox.setPosition({spritePos.x, spritePos.y + hitboxyoffset});
             clock.restart();
         }
 
-        void update(float deltaTime, const std::vector<sf::FloatRect>& mapRects, Prop& prop) {
+        void update(float deltaTime, const std::vector<sf::FloatRect>& mapRects, Prop& prop, sf::RenderWindow& window) {
 
             if (isDead){
                 setAnimation(DEATH, lastDirection);
@@ -165,14 +220,16 @@ class Character {
                     if(currentFrame < currentFrames.size() - 1){
                         currentFrame++;
                     }
-                    // 
+                    else if(!deathAnimationFinished){
+                        deathAnimationFinished = true;
+                        deathTimer.restart();
+                    }
                 }
                 else{
                     currentFrame = (currentFrame + 1) % FRAMES_PER_ROW;
                 }
                 clock.restart();
             }
-
 
             sf::Vector2f movement = {0 , 0};
             float speed = 200.f;
@@ -186,6 +243,7 @@ class Character {
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::L) || Health <= 0) {
                     setAnimation(DEATH, RIGHT);
                     isDead = true;
+                    deathSound[0].play();
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::A)) {
                     movement = {-speed * deltaTime, 0.f};
@@ -207,13 +265,27 @@ class Character {
                     isAttacking = true;
                     setAnimation(ATTACK, lastDirection);
                     currentFrame = 0;
+
+                    // play a random attack sound effect
+                    int index = rand() % 3;
+                    attackSound[index].play();
                 }
 
                 sf::FloatRect nexthitbox = hitbox.getGlobalBounds();
                 nexthitbox.position.x += movement.x;
                 nexthitbox.position.y += movement.y;
 
+                // screen boundary
+                sf::Vector2f windowsize = window.getView().getSize();
+                sf::FloatRect screenbounds = {{0,0}, {windowsize.x, windowsize.y}};
                 bool blocked = false;
+
+                if(nexthitbox.position.x < 0 || nexthitbox.position.y - 40 < 0 ||
+                    (nexthitbox.position.x + nexthitbox.size.x) > (screenbounds.position.x + screenbounds.size.x) || 
+                    (nexthitbox.position.y + nexthitbox.size.y) > (screenbounds.position.y + screenbounds.size.y)){
+                        blocked = true;
+                }
+
                 for(const auto& rect : mapRects) {
                     if(nexthitbox.findIntersection(rect)) {
                         blocked = true;
@@ -221,6 +293,7 @@ class Character {
                     }
                 }
                 if(!blocked){
+
                     for(const auto& rect : propRects) {
                         if(nexthitbox.findIntersection(rect)){
                             int tileX = rect.position.x / TILE_SIZE / SCALE;
@@ -244,6 +317,7 @@ class Character {
                 }
                 if (movement != sf::Vector2f{0.f, 0.f}) {
                     if(!isAttacking && !blocked){
+                        playWalkSound();
                         move(movement.x, movement.y);
                         setAnimation(MOVE, lastDirection);
                         setLastDirection(lastDirection);
@@ -254,6 +328,7 @@ class Character {
                     if(isAttacking == true){
                         setAnimation(ATTACK, lastDirection);
                         setLastDirection(lastDirection);
+
                     } else{
                         setAnimation(IDLE, getLastDirection());
                     }
@@ -271,8 +346,9 @@ class Character {
 
         
         void move(float x, float y) {
-            sprite.move(sf::Vector2f(x, y));
+            sprite.move(sf::Vector2f(x,y));
             hitbox.move(sf::Vector2f(x,y));
+            attack_hitbox.move(sf::Vector2f(x,y));
             
             // Update direction based on movement
             if (x > 0) {
@@ -287,13 +363,31 @@ class Character {
                 setAnimation(MOVE, FRONT);
             }
             sprite.setScale(isFacingRight ? sf::Vector2f(character_SCALE,character_SCALE) : sf::Vector2f(-character_SCALE, character_SCALE));
+            attack_hitbox.setScale(isFacingRight ? sf::Vector2f(character_SCALE, character_SCALE) : sf::Vector2f(-character_SCALE, character_SCALE));
         }
         
         void draw(sf::RenderWindow& window) {
             window.draw(sprite);
-            window.draw(hitbox); // for debugging, delete on release
+            if(isAttacking) window.draw(attack_hitbox); // for debugging, delete on release
         }
         
+        void playWalkSound() {
+            if (walkSoundClock.getElapsedTime() > walkSoundCooldown) {
+                int index;
+                do {
+                    index = rand() % 3;
+                } while (index == lastWalkSoundIndex);
+        
+                lastWalkSoundIndex = index;
+        
+                if (walkSound[index].getStatus() != sf::SoundSource::Status::Playing) {
+                    walkSound[index].play();
+                }
+        
+                walkSoundClock.restart();
+            }
+        }
+
         // getters
         float getCurrentHealth(){
             return Health;
@@ -307,6 +401,11 @@ class Character {
             return hitbox.getGlobalBounds();
         }
         
+        void takeDamage(int dmg){
+            sprite.setColor(sf::Color(200,0,0,80));
+            Health -= dmg;
+        }
+
         sf::Vector2f getPosition() const {
             return sprite.getPosition();
         }
@@ -317,7 +416,7 @@ class Character {
         
         // return flags
         bool isPlayerDead(){ 
-            return isDead;
+            return isDead && deathAnimationFinished && deathTimer.getElapsedTime().asSeconds() >= 1.5f;
         }
         
         bool movetoNextLevel(){

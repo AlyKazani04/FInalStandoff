@@ -195,7 +195,7 @@ class Map : public Layout{
             std::vector<sf::FloatRect> collidables;
             for (int y = 0; y < LEVEL_HEIGHT; ++y) {
                 for (int x = 0; x < LEVEL_WIDTH; ++x) {
-                    if (MAPS[LevelNumber][y][x] != 16 && MAPS[LevelNumber][y][x] != 20) { 
+                    if (MAPS[LevelNumber][y][x] != 16 && MAPS[LevelNumber][y][x] != 20) {
                         collidables.push_back(mapsprites[x][y]);
                     }
                 }
@@ -232,7 +232,7 @@ class Map : public Layout{
                     tempSprite.setScale({SCALE, SCALE});
 
                     float deviation = 0;
-                    if(LevelNumber == 2){ // move all map tiles in level 2 to the left
+                    if(LevelNumber == 2){ // move all map tiles in level 3 to the left
                         deviation = 7;
                     }
 
@@ -240,10 +240,25 @@ class Map : public Layout{
                     float posy = y * TILE_SIZE * SCALE;
                     tempSprite.setPosition(sf::Vector2f(posx, posy));
 
-                    
+                    //store sprite bounds for each tile
                     mapsprites[x][y].position = tempSprite.getGlobalBounds().position;
                     mapsprites[x][y].size = tempSprite.getGlobalBounds().size;
-                    
+
+                    // edit collisions for some map tiles
+                    if(maptile == 6){ // left wall
+                        mapsprites[x][y].size.x = SCALE * TILE_SIZE/3;
+                    }
+                    if(maptile == 23 || maptile == 29){ // left corner walls
+                        mapsprites[x][y].size.x = SCALE * TILE_SIZE/3;
+                    }
+                    if(maptile == 8){ // right wall
+                        mapsprites[x][y].position.x += SCALE * 2 * (TILE_SIZE/3);
+                        mapsprites[x][y].size.x = SCALE * TILE_SIZE/3;
+                    }
+                    if(maptile == 17){ // right corner wall
+                        mapsprites[x][y].position.x += SCALE * 2 * (TILE_SIZE/3);
+                        mapsprites[x][y].size.x = SCALE * TILE_SIZE/3;
+                    }
 
                     window.draw(tempSprite);
                 }

@@ -203,6 +203,8 @@ std::string filepath[3] = {
     "../resources/BossFight.wav"
 };
 
+std::string MENUMUSICFILE = "../resources/MainMenu.wav";
+
 // TImer Constants
 
 sf::Time timers[] = {
@@ -221,5 +223,28 @@ const float character_SCALE = 4;
 sf::Vector2f characterSpawns[3] = {
     sf::Vector2f(TILE_SIZE * SCALE * 3.5f, TILE_SIZE * SCALE * 11),
     sf::Vector2f(TILE_SIZE * SCALE * 2.5f, TILE_SIZE * SCALE * 7),
-    sf::Vector2f(TILE_SIZE * SCALE * 10.5f, TILE_SIZE * SCALE * 11)
+    sf::Vector2f(TILE_SIZE * SCALE * 10.5f, (TILE_SIZE * SCALE * 11 - 7.f))
 };
+
+// Enemy Constants
+const int ENEMY_FRAMES_PER_ROW = 9;
+const sf::FloatRect EnemySpawns[NUMBER_OF_LEVELS][3] = {
+    {// level 1
+        sf::FloatRect({4 * TILE_SIZE * SCALE, 3 * TILE_SIZE * SCALE},{3 * SCALE * TILE_SIZE, 2 * SCALE * TILE_SIZE})
+    },
+    {// Level 2
+        sf::FloatRect({10 * TILE_SIZE * SCALE, 5 * TILE_SIZE * SCALE},{4 * TILE_SIZE * SCALE, 7 * TILE_SIZE *SCALE}),
+        sf::FloatRect({18 * TILE_SIZE * SCALE, 13 * TILE_SIZE * SCALE},{ 2 * TILE_SIZE * SCALE, 2 * TILE_SIZE * SCALE})
+    },
+    { // level 3
+        sf::FloatRect({11 * TILE_SIZE * SCALE, 0},{2 * TILE_SIZE * SCALE, 2 * TILE_SIZE * SCALE}), // top spawn
+        sf::FloatRect({0, 8 * TILE_SIZE * SCALE},{2 * TILE_SIZE * SCALE, 1 * TILE_SIZE * SCALE}), // left spawn
+        sf::FloatRect({20 * TILE_SIZE * SCALE, 8 * TILE_SIZE * SCALE},{2 * TILE_SIZE * SCALE, 1 * TILE_SIZE * SCALE}) // right spawn
+    }
+}; // enemy spawns based on levels; max 3 spawns
+
+// Menu Constants
+
+const std::string FONT_PATH = "../resources/Fonts/Blacknorthdemo-mLE25.otf";
+const std::string TITLE_BOX_PATH = "../resources/MainMenuAssets/MenusBox_34x34.png";
+const std::string BUTTON_PATH = "../resources/MainMenuAssets/Button_52x14.png";
