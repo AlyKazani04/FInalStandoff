@@ -1,230 +1,269 @@
 #include "ScreenManager.hpp"
 #include <iostream>
 
+// Define static constants
 const std::string ScreenManager::FONT_PATH = "/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/fonts/Blacknorthdemo-mLE25.otf";
-const std::string ScreenManager::TITLE_BOX_PATH = "/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/UI/MenusBox_34x34.png";
+const std::string ScreenManager::TITLE_BOX_PATH = "/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/UI/TitleBox_64x16.png";
 const std::string ScreenManager::BUTTON_PATH = "/Users/syed/Desktop/OOP PROJECT/OOP_PROJECT/Assets/UI/Button_52x14.png";
 
-bool ScreenManager::loadStartScreen(sf::RenderWindow& window,
-                                  sf::Font& font,
-                                  sf::Texture& titleBoxTexture,
-                                  sf::Texture& buttonTexture,
-                                  sf::Text& title,
-                                  sf::Sprite& titleBox,
-                                  sf::RectangleShape& playButton,
-                                  sf::RectangleShape& exitButton,
-                                  sf::Text& playText,
-                                  sf::Text& exitText) {
+ScreenManager::ScreenManager()
+    : m_font()
+    , m_titleBoxTexture()
+    , m_buttonTexture()
+    , m_startTitle(m_font, "" , 64)
+    , m_startTitleBox(m_titleBoxTexture)
+    , m_startPlayButton()
+    , m_startExitButton()
+    , m_startPlayText(m_font, "" , 32)
+    , m_startExitText(m_font, "" , 32)
+    , m_pauseTitle(m_font, "" , 64)
+    , m_pauseTitleBox(m_titleBoxTexture)
+    , m_pauseResumeButton()
+    , m_pauseExitButton()
+    , m_pauseResumeText(m_font, "" , 32)
+    , m_pauseExitText(m_font, "" , 32)
+{
+    // Constructor body is empty - all initialization is done in the initialization list
+}
+
+ScreenManager::~ScreenManager() {
+    // Default Destructor
+}
+
+bool ScreenManager::initialize(sf::RenderWindow& window) {
     // Load resources
-    if (!font.openFromFile(FONT_PATH)) {
-        std::cout << "Error loading font" << std::endl;
+    if (!loadResources()) {
+        std::cout << "Failed to load resources" << std::endl;
         return false;
     }
 
-    if (!titleBoxTexture.loadFromFile(TITLE_BOX_PATH)) {
-        std::cout << "Error loading title box texture" << std::endl;
+    // Setup screens
+    if (!setupStartScreen(window) || !setupPauseScreen(window)) {
+        std::cout << "Failed to setup screens" << std::endl;
         return false;
     }
-
-    if (!buttonTexture.loadFromFile(BUTTON_PATH)) {
-        std::cout << "Error loading button texture" << std::endl;
-        return false;
-    }
-
-    // Setup title
-    title.setFont(font);
-    title.setString("Final StandOff");
-    title.setCharacterSize(64);
-    title.setFillColor(sf::Color::White);
-    
-    // Setup title box
-    titleBox.setTexture(titleBoxTexture);
-    float titleWidth = title.getLocalBounds().size.x;
-    float titleHeight = title.getLocalBounds().size.y;
-    float padding = 40.0f;
-    float scaleX = (titleWidth + padding * 2) / titleBoxTexture.getSize().x;
-    float scaleY = (titleHeight + padding * 2) / titleBoxTexture.getSize().y;
-    titleBox.setScale(sf::Vector2f(scaleX, scaleY));
-
-    // Position title and title box
-    float verticalCenter = window.getSize().y / 2.0f - 100.0f;
-    float titleBoxWidth = titleBoxTexture.getSize().x * scaleX;
-    float titleBoxHeight = titleBoxTexture.getSize().y * scaleY;
-    
-    titleBox.setPosition(
-        sf::Vector2f(window.getSize().x / 2.0f - titleBoxWidth / 2.0f,
-        verticalCenter - titleBoxHeight / 2.0f)
-    );
-    
-    title.setPosition(
-        sf::Vector2f(titleBox.getPosition().x + (titleBoxWidth - titleWidth) / 2.0f,
-        titleBox.getPosition().y + (titleBoxHeight - titleHeight) / 2.0f - 10.0f)
-    );
-
-    // Setup buttons
-    playButton.setSize(sf::Vector2f(200.0f, 50.0f));
-    playButton.setPosition(
-        sf::Vector2f(window.getSize().x / 2.0f - 100.0f,
-        300.0f)
-    );
-    playButton.setTexture(&buttonTexture);
-
-    exitButton.setSize(sf::Vector2f(200.0f, 50.0f));
-    exitButton.setPosition(
-        sf::Vector2f(window.getSize().x / 2.0f - 100.0f,
-        400.0f)
-    );
-    exitButton.setTexture(&buttonTexture);
-
-    // Setup button text
-    playText.setFont(font);
-    playText.setString("Play");
-    playText.setCharacterSize(30);
-    playText.setFillColor(sf::Color::White);
-    playText.setPosition(
-        sf::Vector2f(playButton.getPosition().x + (200.0f - playText.getLocalBounds().size.x) / 2,
-        playButton.getPosition().y + (50.0f - playText.getCharacterSize()) / 2)
-    );
-
-    exitText.setFont(font);
-    exitText.setString("Exit");
-    exitText.setCharacterSize(30);
-    exitText.setFillColor(sf::Color::White);
-    exitText.setPosition(
-        sf::Vector2f(exitButton.getPosition().x + (200.0f - exitText.getLocalBounds().size.x) / 2,
-        exitButton.getPosition().y + (50.0f - exitText.getCharacterSize()) / 2)
-    );
 
     return true;
 }
 
-bool ScreenManager::loadPauseScreen(sf::RenderWindow& window,
-                                  sf::Font& font,
-                                  sf::Texture& titleBoxTexture,
-                                  sf::Texture& buttonTexture,
-                                  sf::Text& title,
-                                  sf::Sprite& titleBox,
-                                  sf::RectangleShape& resumeButton,
-                                  sf::RectangleShape& exitButton,
-                                  sf::Text& resumeText,
-                                  sf::Text& exitText) {
-    // Load resources (if not already loaded)
-    if (!font.openFromFile(FONT_PATH)) {
-        std::cout << "Error loading font" << std::endl;
+bool ScreenManager::loadResources() {
+    // Load font
+    if (!m_font.openFromFile(FONT_PATH)) {
+        std::cout << "Failed to load font from " << FONT_PATH << std::endl;
         return false;
     }
 
-    if (!titleBoxTexture.loadFromFile(TITLE_BOX_PATH)) {
-        std::cout << "Error loading title box texture" << std::endl;
+    // Load textures
+    if (!m_titleBoxTexture.loadFromFile(TITLE_BOX_PATH)) {
+        std::cout << "Failed to load title box texture from " << TITLE_BOX_PATH << std::endl;
         return false;
     }
 
-    if (!buttonTexture.loadFromFile(BUTTON_PATH)) {
-        std::cout << "Error loading button texture" << std::endl;
+    if (!m_buttonTexture.loadFromFile(BUTTON_PATH)) {
+        std::cout << "Failed to load button texture from " << BUTTON_PATH << std::endl;
         return false;
     }
-
-    // Setup title
-    title.setFont(font);
-    title.setString("Paused");
-    title.setCharacterSize(64);
-    title.setFillColor(sf::Color::White);
-    
-    // Setup title box
-    titleBox.setTexture(titleBoxTexture);
-    float titleWidth = title.getLocalBounds().size.x;
-    float titleHeight = title.getLocalBounds().size.y;
-    float padding = 40.0f;
-    float scaleX = (titleWidth + padding * 2) / titleBoxTexture.getSize().x;
-    float scaleY = (titleHeight + padding * 2) / titleBoxTexture.getSize().y;
-    titleBox.setScale(sf::Vector2f(scaleX, scaleY));
-
-    // Position title and title box
-    float verticalCenter = window.getSize().y / 2.0f - 100.0f;
-    float titleBoxWidth = titleBoxTexture.getSize().x * scaleX;
-    float titleBoxHeight = titleBoxTexture.getSize().y * scaleY;
-    
-    titleBox.setPosition(
-        sf::Vector2f(window.getSize().x / 2.0f - titleBoxWidth / 2.0f,
-        verticalCenter - titleBoxHeight / 2.0f)
-    );
-    
-    title.setPosition(
-        sf::Vector2f(titleBox.getPosition().x + (titleBoxWidth - titleWidth) / 2.0f,
-        titleBox.getPosition().y + (titleBoxHeight - titleHeight) / 2.0f - 10.0f)
-    );
-
-    // Setup buttons
-    resumeButton.setSize(sf::Vector2f(200.0f, 50.0f));
-    resumeButton.setPosition(
-        sf::Vector2f(window.getSize().x / 2.0f - 100.0f,
-        300.0f)
-    );
-    resumeButton.setTexture(&buttonTexture);
-
-    exitButton.setSize(sf::Vector2f(200.0f, 50.0f));
-    exitButton.setPosition(
-        sf::Vector2f(window.getSize().x / 2.0f - 100.0f,
-        400.0f)
-    );
-    exitButton.setTexture(&buttonTexture);
-
-    // Setup button text
-    resumeText.setFont(font);
-    resumeText.setString("Resume");
-    resumeText.setCharacterSize(30);
-    resumeText.setFillColor(sf::Color::White);
-    resumeText.setPosition(
-        sf::Vector2f(resumeButton.getPosition().x + (200.0f - resumeText.getLocalBounds().size.x) / 2,
-        resumeButton.getPosition().y + (50.0f - resumeText.getCharacterSize()) / 2)
-    );
-
-    exitText.setFont(font);
-    exitText.setString("Exit");
-    exitText.setCharacterSize(30);
-    exitText.setFillColor(sf::Color::White);
-    exitText.setPosition(
-        sf::Vector2f(exitButton.getPosition().x + (200.0f - exitText.getLocalBounds().size.x) / 2,
-        exitButton.getPosition().y + (50.0f - exitText.getCharacterSize()) / 2)
-    );
 
     return true;
 }
 
-void ScreenManager::renderStartScreen(sf::RenderWindow& window,
-                                    const sf::Text& title,
-                                    const sf::Sprite& titleBox,
-                                    const sf::RectangleShape& playButton,
-                                    const sf::Text& playText,
-                                    const sf::RectangleShape& exitButton,
-                                    const sf::Text& exitText) {
-    window.clear(sf::Color::Black);
+bool ScreenManager::setupStartScreen(sf::RenderWindow& window) {
+    // Setup start title
+    m_startTitle.setFont(m_font);
+    m_startTitle.setString("FINAL STANDOFF");
+    m_startTitle.setCharacterSize(64);
+    m_startTitle.setFillColor(sf::Color::White);
     
-    window.draw(titleBox);
-    window.draw(title);
-    window.draw(playButton);
-    window.draw(playText);
-    window.draw(exitButton);
-    window.draw(exitText);
+    // Center the title
+    sf::FloatRect titleBounds = m_startTitle.getLocalBounds();
+    m_startTitle.setOrigin(sf::Vector2f(titleBounds.size.x / 2, titleBounds.size.y / 2));
+    m_startTitle.setPosition(sf::Vector2f(window.getSize().x / 2, window.getSize().y / 3));
+
+    // Setup title box
+    m_startTitleBox.setTexture(m_titleBoxTexture);
+    m_startTitleBox.setOrigin(sf::Vector2f(m_titleBoxTexture.getSize().x / 2, m_titleBoxTexture.getSize().y / 2));
+    m_startTitleBox.setPosition(m_startTitle.getPosition());
+    m_startTitleBox.setScale(sf::Vector2f(1.5f, 1.5f));
+
+    // Setup play button
+    m_startPlayButton.setSize(sf::Vector2f(200, 60));
+    m_startPlayButton.setTexture(&m_buttonTexture);
+    m_startPlayButton.setOrigin(sf::Vector2f(100, 30));
+    m_startPlayButton.setPosition(sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2));
+
+    // Setup play text
+    m_startPlayText.setFont(m_font);
+    m_startPlayText.setString("Play");
+    m_startPlayText.setCharacterSize(32);
+    m_startPlayText.setFillColor(sf::Color::White);
+    
+    // Center the play text
+    sf::FloatRect playTextBounds = m_startPlayText.getLocalBounds();
+    m_startPlayText.setOrigin(sf::Vector2f(playTextBounds.size.x / 2, playTextBounds.size.y / 2));
+    m_startPlayText.setPosition(m_startPlayButton.getPosition());
+
+    // Setup exit button
+    m_startExitButton.setSize(sf::Vector2f(200, 60));
+    m_startExitButton.setTexture(&m_buttonTexture);
+    m_startExitButton.setOrigin(sf::Vector2f(100, 30));
+    m_startExitButton.setPosition(sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2 + 80));
+
+    // Setup exit text
+    m_startExitText.setFont(m_font);
+    m_startExitText.setString("Exit");
+    m_startExitText.setCharacterSize(32);
+    m_startExitText.setFillColor(sf::Color::White);
+    
+    // Center the exit text
+    sf::FloatRect exitTextBounds = m_startExitText.getLocalBounds();
+    m_startExitText.setOrigin(sf::Vector2f(exitTextBounds.size.x / 2, exitTextBounds.size.y / 2));
+    m_startExitText.setPosition(m_startExitButton.getPosition());
+
+    return true;
+}
+
+bool ScreenManager::setupPauseScreen(sf::RenderWindow& window) {
+    // Setup pause title
+    m_pauseTitle.setFont(m_font);
+    m_pauseTitle.setString("Paused");
+    m_pauseTitle.setCharacterSize(64);
+    m_pauseTitle.setFillColor(sf::Color::White);
+    
+    // Center the title
+    sf::FloatRect titleBounds = m_pauseTitle.getLocalBounds();
+    m_pauseTitle.setOrigin(sf::Vector2f(titleBounds.size.x / 2, titleBounds.size.y / 2));
+    m_pauseTitle.setPosition(sf::Vector2f(window.getSize().x / 2, window.getSize().y / 3));
+
+    // Setup title box
+    m_pauseTitleBox.setTexture(m_titleBoxTexture);
+    m_pauseTitleBox.setOrigin(sf::Vector2f(m_titleBoxTexture.getSize().x / 2, m_titleBoxTexture.getSize().y / 2));
+    m_pauseTitleBox.setPosition(m_pauseTitle.getPosition());
+    m_pauseTitleBox.setScale(sf::Vector2f(1.5f, 1.5f));
+
+    // Setup resume button
+    m_pauseResumeButton.setSize(sf::Vector2f(200, 60));
+    m_pauseResumeButton.setTexture(&m_buttonTexture);
+    m_pauseResumeButton.setOrigin(sf::Vector2f(100, 30));
+    m_pauseResumeButton.setPosition(sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2));
+
+    // Setup resume text
+    m_pauseResumeText.setFont(m_font);
+    m_pauseResumeText.setString("Resume");
+    m_pauseResumeText.setCharacterSize(32);
+    m_pauseResumeText.setFillColor(sf::Color::White);
+    
+    // Center the resume text
+    sf::FloatRect resumeTextBounds = m_pauseResumeText.getLocalBounds();
+    m_pauseResumeText.setOrigin(sf::Vector2f(resumeTextBounds.size.x / 2, resumeTextBounds.size.y / 2));
+    m_pauseResumeText.setPosition(m_pauseResumeButton.getPosition());
+
+    // Setup exit button
+    m_pauseExitButton.setSize(sf::Vector2f(200, 60));
+    m_pauseExitButton.setTexture(&m_buttonTexture);
+    m_pauseExitButton.setOrigin(sf::Vector2f(100, 30));
+    m_pauseExitButton.setPosition(sf::Vector2f(window.getSize().x / 2, window.getSize().y / 2 + 80));
+
+    // Setup exit text
+    m_pauseExitText.setFont(m_font);
+    m_pauseExitText.setString("Exit");
+    m_pauseExitText.setCharacterSize(32);
+    m_pauseExitText.setFillColor(sf::Color::White);
+    
+    // Center the exit text
+    sf::FloatRect exitTextBounds = m_pauseExitText.getLocalBounds();
+    m_pauseExitText.setOrigin(sf::Vector2f(exitTextBounds.size.x / 2, exitTextBounds.size.y / 2));
+    m_pauseExitText.setPosition(m_pauseExitButton.getPosition());
+
+    return true;
+}
+
+bool ScreenManager::handleStartScreenInput(sf::RenderWindow& window, bool& startGame, bool& exitGame) {
+    startGame = false;
+    exitGame = false;
+
+    while (const auto event = window.pollEvent()) {
+        if (event->is<sf::Event::Closed>()) {
+            window.close();
+            return false;
+        }
+        else if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            
+            if (m_startPlayButton.getGlobalBounds().contains(sf::Vector2f(mousePos.x, mousePos.y))) {
+                startGame = true;
+            }
+            else if (m_startExitButton.getGlobalBounds().contains(sf::Vector2f(mousePos.x, mousePos.y))) {
+                exitGame = true;
+            }
+        }
+        else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+            if (keyPressed->scancode == sf::Keyboard::Scancode::Space) {
+                startGame = true;
+            }
+            else if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
+                exitGame = true;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool ScreenManager::handlePauseScreenInput(sf::RenderWindow& window, bool& resumeGame, bool& exitGame) {
+    resumeGame = false;
+    exitGame = false;
+
+    while (const auto event = window.pollEvent()) {
+        if (event->is<sf::Event::Closed>()) {
+            window.close();
+            return false;
+        }
+        else if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            
+            if (m_pauseResumeButton.getGlobalBounds().contains(sf::Vector2f(mousePos.x, mousePos.y))) {
+                resumeGame = true;
+            }
+            else if (m_pauseExitButton.getGlobalBounds().contains(sf::Vector2f(mousePos.x, mousePos.y))) {
+                exitGame = true;
+            }
+        }
+        else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+            if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
+                resumeGame = true;
+            }
+        }
+    }
+
+    return true;
+}
+
+void ScreenManager::renderStartScreen(sf::RenderWindow& window) {
+    window.clear(sf::Color(50, 50, 50));
+    
+    // Draw title box and title
+    window.draw(m_startTitleBox);
+    window.draw(m_startTitle);
+    
+    // Draw buttons and text
+    window.draw(m_startPlayButton);
+    window.draw(m_startPlayText);
+    window.draw(m_startExitButton);
+    window.draw(m_startExitText);
     
     window.display();
 }
 
-void ScreenManager::renderPauseScreen(sf::RenderWindow& window,
-                                    const sf::Text& title,
-                                    const sf::Sprite& titleBox,
-                                    const sf::RectangleShape& resumeButton,
-                                    const sf::Text& resumeText,
-                                    const sf::RectangleShape& exitButton,
-                                    const sf::Text& exitText) {
-    window.clear(sf::Color(0, 0, 0, 200));  // Semi-transparent black background
+void ScreenManager::renderPauseScreen(sf::RenderWindow& window) {
+    // Draw title box and title
+    window.draw(m_pauseTitleBox);
+    window.draw(m_pauseTitle);
     
-    window.draw(titleBox);
-    window.draw(title);
-    window.draw(resumeButton);
-    window.draw(resumeText);
-    window.draw(exitButton);
-    window.draw(exitText);
+    // Draw buttons and text
+    window.draw(m_pauseResumeButton);
+    window.draw(m_pauseResumeText);
+    window.draw(m_pauseExitButton);
+    window.draw(m_pauseExitText);
     
     window.display();
 } 
